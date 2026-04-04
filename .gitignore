@@ -22,4 +22,4 @@ build/
 
 # IDE files
 .vscode/
-.idea/
+.idea/.env
