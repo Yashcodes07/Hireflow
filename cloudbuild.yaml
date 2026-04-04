@@ -1,0 +1,47 @@
+# cloudbuild.yaml
+# Triggered on push to main → builds image → deploys to Cloud Run
+#
+# gcloud builds submit --config cloudbuild.yaml \
+#   --substitutions _SERVICE=hr-gateway,_REGION=us-central1
+
+substitutions:
+  _SERVICE: hr-gateway
+  _REGION: us-central1
+  _IMAGE: gcr.io/$PROJECT_ID/${_SERVICE}
+
+steps:
+  # 1. Build container
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - build
+      - -t
+      - ${_IMAGE}:$SHORT_SHA
+      - -t
+      - ${_IMAGE}:latest
+      - .
+
+  # 2. Push to Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "--all-tags", "${_IMAGE}"]
+
+  # 3. Deploy to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_IMAGE}:$SHORT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+      - --allow-unauthenticated          # remove if you want IAM-only access
+      - --min-instances=0                # free-tier friendly (scale to zero)
+      - --max-instances=10
+      - --memory=512Mi
+      - --cpu=1
+      - --set-env-vars=GCP_PROJECT_ID=$PROJECT_ID
+      - --set-secrets=JWT_SECRET_KEY=jwt-secret:latest,ALLOYDB_URL=alloydb-url:latest
+
+images:
+  - ${_IMAGE}:$SHORT_SHA
+  - ${_IMAGE}:latest

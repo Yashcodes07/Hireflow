@@ -1,0 +1,25 @@
+# ── Web framework ─────────────────────────────────────────────────────────────
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# ── Auth ──────────────────────────────────────────────────────────────────────
+PyJWT==2.9.0
+bcrypt==4.2.0            # for password hashing (add when you wire up user DB)
+
+# ── Validation / settings ─────────────────────────────────────────────────────
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# ── HTTP client (for LangGraph calls) ────────────────────────────────────────
+httpx==0.27.2
+
+# ── Database (AlloyDB / PostgreSQL) ──────────────────────────────────────────
+asyncpg==0.30.0
+sqlalchemy[asyncio]==2.0.36
+cloud-sql-python-connector[asyncpg]==1.12.0
+
+# ── Observability ─────────────────────────────────────────────────────────────
+langsmith==0.1.135
+
+# ── Google Cloud ─────────────────────────────────────────────────────────────
+google-cloud-secret-manager==2.20.2   # pull secrets at runtime
