@@ -1,6 +1,7 @@
 """
-main.py — FastAPI application factory.
-Cloud Run starts this via: uvicorn main:app --host 0.0.0.0 --port $PORT
+main.py  (Day 2 — updated)
+Adds DB init/close to the lifespan hook.
+Everything else unchanged from Day 1.
 """
 
 import logging
@@ -14,10 +15,10 @@ from fastapi.responses import JSONResponse
 from config import get_settings
 from middleware import RequestLoggingMiddleware
 from routes import router
+from db.connection import init_db, close_db
 
 settings = get_settings()
 
-# ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=settings.LOG_LEVEL,
     format="%(asctime)s %(levelname)s %(name)s — %(message)s",
@@ -25,46 +26,43 @@ logging.basicConfig(
 logger = logging.getLogger("gateway")
 
 
-# ── Lifespan (startup / shutdown hooks) ──────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("🚀 HR Gateway starting — project=%s", settings.GCP_PROJECT_ID)
-    # TODO: initialise AlloyDB async connection pool here
-    # from db import init_db; await init_db()
+
+    # ── Day 2: connect to AlloyDB ─────────────────────────────────────────────
+    try:
+        await init_db()
+    except Exception as exc:
+        logger.warning("DB init failed (running without DB): %s", exc)
+
     yield
-    logger.info("🛑 HR Gateway shutting down")
-    # TODO: close DB pool here
+
+    logger.info("🛑 Shutting down")
+    await close_db()
 
 
-# ── App factory ───────────────────────────────────────────────────────────────
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description=(
-        "FastAPI Gateway for the HR Hiring Pipeline. "
-        "Handles auth, request validation, and LangGraph orchestration."
-    ),
+    description="FastAPI Gateway — HR Hiring Pipeline",
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
 )
 
-# ── Middleware (order matters — outermost first) ──────────────────────────────
 app.add_middleware(RequestLoggingMiddleware)
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],      # tighten for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(router, prefix="/api/v1")
 
 
-# ── Global exception handler ──────────────────────────────────────────────────
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled error on %s %s", request.method, request.url.path)
@@ -74,7 +72,6 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-# ── Dev entrypoint ────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))

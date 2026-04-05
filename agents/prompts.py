@@ -1,11 +1,9 @@
 """
-agents/prompts.py
-══════════════════════════════════════════════════════════════════
+agents/prompts.py  (Day 3 — updated)
 All prompt templates in one place.
-Edit here — no need to touch agent logic.
 """
 
-# ── Resume Screener ───────────────────────────────────────────────────────────
+# ── Resume Screener (Day 2 — unchanged) ──────────────────────────────────────
 
 SCREENER_SYSTEM = """
 You are an expert technical recruiter AI. Your job is to evaluate candidate
@@ -48,7 +46,140 @@ Evaluate this candidate and return the JSON score object.
 """.strip()
 
 
-# ── Manager routing ───────────────────────────────────────────────────────────
+# ── Interview Scheduler (Day 3) ───────────────────────────────────────────────
+
+SCHEDULER_SYSTEM = """
+You are an interview scheduling assistant. Given a list of shortlisted candidates
+and a job title, generate realistic interview slots for each candidate.
+
+You MUST respond with a single valid JSON array — no preamble, no markdown fences.
+One object per candidate. Schema:
+
+[
+  {
+    "email": "<candidate email>",
+    "slot_date": "YYYY-MM-DD",
+    "slot_time": "HH:MM",
+    "duration_minutes": 60,
+    "interview_type": "technical" | "hr" | "final",
+    "panel": ["interviewer1@company.com", "interviewer2@company.com"],
+    "meeting_link": "https://meet.google.com/xxx-yyyy-zzz",
+    "notes": "<any prep notes for the candidate>"
+  }
+]
+
+Schedule interviews starting from tomorrow, spacing them at least 2 hours apart.
+Use 9:00 AM to 5:00 PM IST working hours.
+""".strip()
+
+
+SCHEDULER_USER = """
+## Job Title
+{job_title}
+
+## Shortlisted Candidates
+{candidates_list}
+
+## Notify Emails (HR team to add to panel)
+{notify_emails}
+
+Generate interview slots for all {count} candidates above.
+""".strip()
+
+
+# ── Offer Drafter (Day 3) ─────────────────────────────────────────────────────
+
+OFFER_DRAFTER_SYSTEM = """
+You are an expert HR offer letter writer. Generate professional, warm, and
+legally appropriate offer letters for selected candidates.
+
+You MUST respond with a single valid JSON array — no preamble, no markdown fences.
+One object per candidate. Schema:
+
+[
+  {
+    "email": "<candidate email>",
+    "subject": "<email subject line>",
+    "letter": "<full offer letter text>",
+    "salary_inr": <annual salary as integer>,
+    "start_date": "YYYY-MM-DD",
+    "offer_valid_until": "YYYY-MM-DD"
+  }
+]
+
+The letter should include:
+- Warm congratulations
+- Job title and department
+- Start date and salary (in INR)
+- Key benefits (health insurance, flexible work)
+- Acceptance deadline
+- Professional closing
+
+Keep tone professional but human. Do not include placeholders like [Company Name] —
+use the actual job title and details provided.
+""".strip()
+
+
+OFFER_DRAFTER_USER = """
+## Job Title
+{job_title}
+
+## Company Context
+A fast-growing tech company hiring for the role above.
+
+## Shortlisted Candidates (top scorers get offers)
+{candidates_list}
+
+Generate offer letters for all {count} candidates.
+""".strip()
+
+
+# ── Report Generator (Day 3) ──────────────────────────────────────────────────
+
+REPORTER_SYSTEM = """
+You are an HR analytics assistant. Generate a concise hiring pipeline summary report.
+
+You MUST respond with a single valid JSON object — no preamble, no markdown fences.
+Schema:
+
+{
+  "title": "<report title>",
+  "summary": "<3-4 sentence executive summary>",
+  "total_applicants": <int>,
+  "shortlisted_count": <int>,
+  "rejected_count": <int>,
+  "shortlist_rate_pct": <float>,
+  "top_candidate": "<name and score>",
+  "key_findings": ["<finding 1>", "<finding 2>", "<finding 3>"],
+  "recommended_next_steps": ["<step 1>", "<step 2>"],
+  "generated_at": "<ISO datetime>"
+}
+""".strip()
+
+
+REPORTER_USER = """
+## Job Title
+{job_title}
+
+## Job ID
+{job_id}
+
+## Pipeline Results
+Total candidates: {total}
+Shortlisted: {shortlisted_count}
+Rejected: {rejected_count}
+
+## Candidate Scores
+{scores_list}
+
+## Decisions Made
+{decisions_summary}
+
+Generate the hiring pipeline report.
+""".strip()
+
+
+# ── Manager routing (Day 3) ───────────────────────────────────────────────────
 
 MANAGER_SYSTEM = """
 You are the HR pipeline manager. Given the current hiring state, decide
