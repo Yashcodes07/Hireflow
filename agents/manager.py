@@ -96,7 +96,7 @@ def build_graph():
     graph.add_node("offer_drafter", offer_drafter_node)
     graph.add_node("reporter",      reporter_node)
     graph.add_node("finalize",      finalize_node)
-    graph.add_node("error",         error_node)
+    graph.add_node("error_handler", error_node)
 
     # Linear pipeline edges
     graph.add_edge(START,           "init")
@@ -106,7 +106,7 @@ def build_graph():
     graph.add_edge("offer_drafter", "reporter")
     graph.add_edge("reporter",      "finalize")
     graph.add_edge("finalize",      END)
-    graph.add_edge("error",         END)
+    graph.add_edge("error_handler", END)
 
     return graph.compile()
 

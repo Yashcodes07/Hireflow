@@ -1,6 +1,6 @@
 """
-pipeline/langgraph_trigger.py  (Day 3 — updated)
-Handles richer output: interview slots, offer letters, report, audit decisions.
+pipeline/langgraph_trigger.py  (Day 4 — updated)
+Adds LangSmith trace feedback after each pipeline run.
 """
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ from agents.manager import run_pipeline
 from db.connection import get_session
 from db import crud
 from models import HireRequest, HireResponse, HiringStage, CandidateResult, CandidateStatus
+from observability.langsmith_tracer import trace_pipeline_run
 
 logger = logging.getLogger("pipeline")
 
@@ -28,18 +29,22 @@ async def run_hiring_pipeline(request: HireRequest, request_id: str) -> HireResp
     # ── Run LangGraph pipeline ────────────────────────────────────────────────
     result = await run_pipeline(payload, run_id=request_id)
 
+    # ── Log to LangSmith ──────────────────────────────────────────────────────
+    trace_pipeline_run(
+        run_id = request_id,
+        job_id = request.job_id,
+        result = result,
+    )
+
     # ── Persist to AlloyDB ────────────────────────────────────────────────────
     try:
         async with get_session() as session:
-            # Save shortlisted candidates with full data
             await crud.save_candidates(
                 session,
                 job_id     = request.job_id,
                 run_id     = request_id,
                 candidates = result.get("shortlisted", []),
             )
-
-            # Save full audit trail from all agents
             decisions = result.get("decisions", [])
             if decisions:
                 await crud.save_audit_decisions(
@@ -48,8 +53,7 @@ async def run_hiring_pipeline(request: HireRequest, request_id: str) -> HireResp
                     run_id    = request_id,
                     decisions = decisions,
                 )
-
-            logger.info("✅ Persisted full pipeline results for job_id=%s", request.job_id)
+            logger.info("✅ Persisted to AlloyDB for job_id=%s", request.job_id)
 
     except Exception as exc:
         logger.warning("DB persist failed (non-fatal): %s", exc)

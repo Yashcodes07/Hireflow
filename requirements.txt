@@ -1,30 +1,33 @@
-# ── Web framework ─────────────────────────────────────────────────────────────
+# ── Web framework ─────────────────────────────────────────────────
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
 
-# ── Auth ──────────────────────────────────────────────────────────────────────
+# ── Auth ──────────────────────────────────────────────────────────
 PyJWT==2.9.0
-bcrypt==4.2.0            # for password hashing (add when you wire up user DB)
+bcrypt==4.2.0
 
-# ── Validation / settings ─────────────────────────────────────────────────────
+# ── Validation / settings ─────────────────────────────────────────
 pydantic==2.9.2
 pydantic-settings==2.5.2
 
-# ── HTTP client (for LangGraph calls) ────────────────────────────────────────
-httpx==0.27.2
+# ── HTTP client ───────────────────────────────────────────────────
+httpx==0.28.1
 
-# ── Database (AlloyDB / PostgreSQL) ──────────────────────────────────────────
+# ── Database ──────────────────────────────────────────────────────
 asyncpg==0.30.0
 sqlalchemy[asyncio]==2.0.36
 cloud-sql-python-connector[asyncpg]==1.12.0
 
-# ── Observability ─────────────────────────────────────────────────────────────
-langsmith==0.1.135
-
-# ── Google Cloud ─────────────────────────────────────────────────────────────
-google-cloud-secret-manager==2.20.2   # pull secrets at runtime
+# ── LangGraph + LangChain (STABLE STACK) ───────────────────────────
 langgraph==0.2.56
 langchain==0.3.7
 langchain-core==0.3.19
-langchain-google-genai==2.0.5
-google-generativeai==0.8.3
+langsmith==0.1.125
+
+# ── Google AI (LOCKED versions to avoid conflicts) ────────────────
+google-genai==1.70.0
+google-cloud-aiplatform==1.145.0
+
+# ── Google Cloud ──────────────────────────────────────────────────
+google-cloud-secret-manager==2.20.2
+google-auth==2.49.1

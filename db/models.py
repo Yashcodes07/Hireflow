@@ -164,7 +164,7 @@ class AuditLog(Base):
     action     = Column(String(200), nullable=False)
     target     = Column(String(200), nullable=False)   # candidate email or "all"
     reasoning  = Column(Text,        nullable=True)
-    metadata   = Column(JSON,        nullable=True)    # any extra context
+    meta_data   = Column(JSON,        nullable=True)    # any extra context
 
     timestamp  = Column(DateTime(timezone=True), default=_now, nullable=False, index=True)
 

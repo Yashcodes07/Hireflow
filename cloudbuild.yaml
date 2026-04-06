@@ -1,17 +1,19 @@
-# cloudbuild.yaml
-# Triggered on push to main → builds image → deploys to Cloud Run
+# cloudbuild.yaml  (Day 4 — production)
+# Trigger: push to main branch
+# Pipeline: build → push → deploy to Cloud Run
 #
-# gcloud builds submit --config cloudbuild.yaml \
-#   --substitutions _SERVICE=hr-gateway,_REGION=us-central1
+# Run manually:
+#   gcloud builds submit --config cloudbuild.yaml
 
 substitutions:
   _SERVICE: hr-gateway
-  _REGION: us-central1
-  _IMAGE: gcr.io/$PROJECT_ID/${_SERVICE}
+  _REGION:  us-central1
+  _IMAGE:   gcr.io/$PROJECT_ID/hr-gateway
 
 steps:
-  # 1. Build container
+  # ── 1. Build Docker image ──────────────────────────────────────────────────
   - name: "gcr.io/cloud-builders/docker"
+    id: build
     args:
       - build
       - -t
@@ -20,13 +22,17 @@ steps:
       - ${_IMAGE}:latest
       - .
 
-  # 2. Push to Container Registry
+  # ── 2. Push to Container Registry ─────────────────────────────────────────
   - name: "gcr.io/cloud-builders/docker"
+    id: push
     args: ["push", "--all-tags", "${_IMAGE}"]
+    waitFor: ["build"]
 
-  # 3. Deploy to Cloud Run
+  # ── 3. Deploy to Cloud Run ─────────────────────────────────────────────────
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: deploy
     entrypoint: gcloud
+    waitFor: ["push"]
     args:
       - run
       - deploy
@@ -34,14 +40,24 @@ steps:
       - --image=${_IMAGE}:$SHORT_SHA
       - --region=${_REGION}
       - --platform=managed
-      - --allow-unauthenticated          # remove if you want IAM-only access
-      - --min-instances=0                # free-tier friendly (scale to zero)
+      - --allow-unauthenticated
+      - --min-instances=0
       - --max-instances=10
-      - --memory=512Mi
+      - --memory=1Gi
       - --cpu=1
-      - --set-env-vars=GCP_PROJECT_ID=$PROJECT_ID
-      - --set-secrets=JWT_SECRET_KEY=jwt-secret:latest,ALLOYDB_URL=alloydb-url:latest
+      - --timeout=300
+      - --concurrency=10
+      - --set-env-vars=GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=${_REGION}
+      - --set-env-vars=ALLOYDB_USE_CONNECTOR=true
+      - --set-env-vars=LANGSMITH_TRACING=true
+      - --set-secrets=JWT_SECRET_KEY=jwt-secret:latest
+      - --set-secrets=LANGSMITH_API_KEY=langsmith-api-key:latest
+      - --set-secrets=ALLOYDB_DB_PASS=alloydb-password:latest
+      - --service-account=hr-gateway-sa@$PROJECT_ID.iam.gserviceaccount.com
 
 images:
   - ${_IMAGE}:$SHORT_SHA
   - ${_IMAGE}:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY

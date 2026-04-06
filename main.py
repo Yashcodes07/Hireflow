@@ -1,7 +1,6 @@
 """
-main.py  (Day 2 — updated)
-Adds DB init/close to the lifespan hook.
-Everything else unchanged from Day 1.
+main.py  (Day 4 — updated)
+Adds LangSmith tracing to the lifespan hook.
 """
 
 import logging
@@ -16,12 +15,13 @@ from config import get_settings
 from middleware import RequestLoggingMiddleware
 from routes import router
 from db.connection import init_db, close_db
+from observability import setup_langsmith
 
 settings = get_settings()
 
 logging.basicConfig(
-    level=settings.LOG_LEVEL,
-    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
+    level  = settings.LOG_LEVEL,
+    format = "%(asctime)s %(levelname)s %(name)s — %(message)s",
 )
 logger = logging.getLogger("gateway")
 
@@ -30,7 +30,10 @@ logger = logging.getLogger("gateway")
 async def lifespan(app: FastAPI):
     logger.info("🚀 HR Gateway starting — project=%s", settings.GCP_PROJECT_ID)
 
-    # ── Day 2: connect to AlloyDB ─────────────────────────────────────────────
+    # ── Day 4: LangSmith tracing ──────────────────────────────────────────────
+    setup_langsmith(settings)
+
+    # ── Day 2: DB connection ──────────────────────────────────────────────────
     try:
         await init_db()
     except Exception as exc:
@@ -43,21 +46,21 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title=settings.APP_NAME,
-    version=settings.APP_VERSION,
-    description="FastAPI Gateway — HR Hiring Pipeline",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    lifespan=lifespan,
+    title       = settings.APP_NAME,
+    version     = settings.APP_VERSION,
+    description = "FastAPI Gateway — HR Hiring Pipeline",
+    docs_url    = "/docs",
+    redoc_url   = "/redoc",
+    lifespan    = lifespan,
 )
 
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins     = ["*"],
+    allow_credentials = True,
+    allow_methods     = ["*"],
+    allow_headers     = ["*"],
 )
 
 app.include_router(router, prefix="/api/v1")
@@ -67,8 +70,8 @@ app.include_router(router, prefix="/api/v1")
 async def global_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled error on %s %s", request.method, request.url.path)
     return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error", "error_code": "INTERNAL_ERROR"},
+        status_code = 500,
+        content     = {"detail": "Internal server error", "error_code": "INTERNAL_ERROR"},
     )
 
 
