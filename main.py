@@ -16,7 +16,17 @@ from middleware import RequestLoggingMiddleware
 from routes import router
 from db.connection import init_db, close_db
 from observability import setup_langsmith
+# Add this import at the top with other imports
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
+# Add this AFTER app is created, BEFORE app.include_router(...)
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+# Add this route to serve the dashboard
+@app.get("/")
+async def serve_dashboard():
+    return FileResponse("frontend/index.html")
 settings = get_settings()
 
 logging.basicConfig(

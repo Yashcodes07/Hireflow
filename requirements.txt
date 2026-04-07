@@ -31,3 +31,11 @@ google-cloud-aiplatform==1.145.0
 # ── Google Cloud ──────────────────────────────────────────────────
 google-cloud-secret-manager==2.20.2
 google-auth==2.49.1
+
+# ── Google Calendar + Gmail APIs ──────────────────────────────────
+google-api-python-client==2.140.0
+google-auth-httplib2==0.2.0
+ 
+# ── Cloud Firestore (Notes MCP) ───────────────────────────────────
+google-cloud-firestore==2.16.1
+ 
