@@ -21,25 +21,26 @@ logger = logging.getLogger("calendar_mcp")
 
 
 # ── Google Calendar client ────────────────────────────────────────────────────
-def _get_calendar_service():
-    """
-    Returns authenticated Google Calendar API service.
-    Uses Application Default Credentials (gcloud login).
-    """
-    try:
-        from google.oauth2 import service_account
-        from googleapiclient.discovery import build
-        import google.auth
+def _get_service(api_name, api_version, scopes):
+    import os
+    from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
+    from googleapiclient.discovery import build
 
-        credentials, project = google.auth.default(
-            scopes=["https://www.googleapis.com/auth/calendar"]
-        )
-        service = build("calendar", "v3", credentials=credentials)
-        return service
-    except Exception as exc:
-        logger.warning("Calendar API not available: %s", exc)
-        return None
+    token_path = "credentials/token.json"
+    creds = None
 
+    if os.path.exists(token_path):
+        creds = Credentials.from_authorized_user_file(token_path, scopes)
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            logger.warning(f"{api_name} credentials not found at {token_path}")
+            return None
+
+    return build(api_name, api_version, credentials=creds)
 
 # ── Create interview event ────────────────────────────────────────────────────
 
@@ -104,7 +105,11 @@ async def create_interview_event(
         },
     }
 
-    service = _get_calendar_service()
+    service = _get_service(
+    "calendar",
+    "v3",
+    ["https://www.googleapis.com/auth/calendar"]
+)
 
     if service:
         try:
@@ -155,7 +160,11 @@ async def create_interview_event(
 
 async def cancel_interview_event(event_id: str) -> bool:
     """Cancel a previously created calendar event."""
-    service = _get_calendar_service()
+    service = _get_service(
+    "calendar",
+    "v3",
+    ["https://www.googleapis.com/auth/calendar"]
+)    
     if service:
         try:
             service.events().delete(

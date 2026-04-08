@@ -135,6 +135,7 @@ async def run_pipeline(payload: dict, run_id: str) -> dict:
             "rejected_count" : 0,
             "pipeline_run_id": run_id,
             "error"          : str(exc),
+            "success"        : False,
         }
 
     return {
@@ -146,4 +147,5 @@ async def run_pipeline(payload: dict, run_id: str) -> dict:
         "audit_log_id"   : final_state.get("audit_log_id"),
         "run_id"         : run_id,
         "decisions"      : final_state.get("decisions", []),
+        "success"        : True,
     }

@@ -25,35 +25,49 @@ logger = logging.getLogger("email_mcp")
 
 # ── Gmail client ──────────────────────────────────────────────────────────────
 
-def _get_gmail_service():
-    try:
-        from googleapiclient.discovery import build
-        import google.auth
+def _get_service(api_name, api_version, scopes):
+    import os
+    from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
+    from googleapiclient.discovery import build
 
-        credentials, _ = google.auth.default(
-            scopes=["https://www.googleapis.com/auth/gmail.send"]
-        )
-        return build("gmail", "v1", credentials=credentials)
-    except Exception as exc:
-        logger.warning("Gmail API not available: %s", exc)
-        return None
+    token_path = "credentials/token.json"
+    creds = None
+
+    if os.path.exists(token_path):
+        creds = Credentials.from_authorized_user_file(token_path, scopes)
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            logger.warning(f"{api_name} credentials not found at {token_path}")
+            return None
+
+    return build(api_name, api_version, credentials=creds)
+
+
 
 
 def _build_message(to: str, subject: str, body_html: str, from_email: str = "me") -> dict:
     """Build a Gmail API message from parts."""
     message = MIMEMultipart("alternative")
     message["to"]      = to
-    message["from"]    = from_email
+    message["from"]    = "me"
     message["subject"] = subject
+    message.attach(MIMEText("This is an automated email from HR system.", "plain"))
     message.attach(MIMEText(body_html, "html"))
-
     raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
     return {"raw": raw}
 
 
 async def _send_email(to: str, subject: str, body_html: str) -> bool:
     """Core send function. Returns True on success."""
-    service = _get_gmail_service()
+    SCOPES = [
+    "https://www.googleapis.com/auth/gmail.send",
+    "https://www.googleapis.com/auth/calendar"
+]
+    service = _get_service("gmail", "v1", SCOPES)
 
     if service:
         try:

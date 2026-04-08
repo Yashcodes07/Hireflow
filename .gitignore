@@ -30,3 +30,8 @@ build/
 # IDE files
 .vscode/
 .idea/
+
+# Ignore credentials and token files
+# Google Auth Secrets
+credentials/*.json
+token.json

@@ -16,17 +16,9 @@ from middleware import RequestLoggingMiddleware
 from routes import router
 from db.connection import init_db, close_db
 from observability import setup_langsmith
-# Add this import at the top with other imports
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-# Add this AFTER app is created, BEFORE app.include_router(...)
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
-
-# Add this route to serve the dashboard
-@app.get("/")
-async def serve_dashboard():
-    return FileResponse("frontend/index.html")
 settings = get_settings()
 
 logging.basicConfig(
@@ -40,10 +32,8 @@ logger = logging.getLogger("gateway")
 async def lifespan(app: FastAPI):
     logger.info("🚀 HR Gateway starting — project=%s", settings.GCP_PROJECT_ID)
 
-    # ── Day 4: LangSmith tracing ──────────────────────────────────────────────
     setup_langsmith(settings)
 
-    # ── Day 2: DB connection ──────────────────────────────────────────────────
     try:
         await init_db()
     except Exception as exc:
@@ -55,6 +45,7 @@ async def lifespan(app: FastAPI):
     await close_db()
 
 
+# ✅ CREATE APP FIRST
 app = FastAPI(
     title       = settings.APP_NAME,
     version     = settings.APP_VERSION,
@@ -63,6 +54,15 @@ app = FastAPI(
     redoc_url   = "/redoc",
     lifespan    = lifespan,
 )
+
+# ✅ THEN USE app
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+
+@app.get("/")
+async def serve_dashboard():
+    return FileResponse("frontend/index.html")
+
 
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(

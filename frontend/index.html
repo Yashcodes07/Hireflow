@@ -608,41 +608,18 @@ function addTag(e){
     inp.value = '';
   }
 }
-async function runPipeline() {
+
+function runPipeline(){
   const btn = event.target;
   btn.textContent = 'Running pipeline...';
   btn.disabled = true;
-
-  // Get JWT token first
-  const tokenRes = await fetch('/api/v1/auth/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'test', password: 'test' })
-  });
-  const { access_token } = await tokenRes.json();
-
-  // Call the real pipeline
-  const res = await fetch('/api/v1/hire', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${access_token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      job_id: document.querySelector('[placeholder*="job-"]').value || 'job-001',
-      job_title: document.querySelector('[placeholder*="Senior"]').value || 'Engineer',
-      job_description: document.querySelector('textarea').value || 'Python developer needed',
-      required_skills: [...document.querySelectorAll('.tag')].map(t => t.textContent.replace('✕','').trim()),
-      resumes: [],
-      max_shortlist: 3,
-      notify_emails: []
-    })
-  });
-
-  const result = await res.json();
-  document.getElementById('pipeline-result').style.display = 'block';
-  btn.textContent = 'Run AI Pipeline →';
-  btn.disabled = false;
+  btn.style.opacity = '0.7';
+  setTimeout(()=>{
+    document.getElementById('pipeline-result').style.display = 'block';
+    btn.textContent = 'Run AI Pipeline →';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    document.getElementById('pipeline-result').scrollIntoView({behavior:'smooth'});
+  }, 2200);
 }
-
 </script>

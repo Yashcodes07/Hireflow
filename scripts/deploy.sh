@@ -15,6 +15,8 @@ PROJECT_ID="project-agent-491814"
 REGION="us-central1"
 SERVICE="hr-gateway"
 IMAGE="gcr.io/$PROJECT_ID/$SERVICE"
+SA_NAME="hr-gateway-sa"
+SA="$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com"
 
 echo "🚀 Deploying HR Gateway to Cloud Run..."
 echo "   Project : $PROJECT_ID"
@@ -38,13 +40,29 @@ echo "✅ APIs enabled"
 # ── Step 2: Create service account ────────────────────────────────────────────
 echo ""
 echo "🔐 Step 2: Creating service account..."
-gcloud iam service-accounts create hr-gateway-sa \
-  --display-name="HR Gateway Service Account" \
-  --project=$PROJECT_ID 2>/dev/null || echo "   Service account already exists"
 
-SA="hr-gateway-sa@$PROJECT_ID.iam.gserviceaccount.com"
+# Check if SA already exists before creating
+if gcloud iam service-accounts describe "$SA" --project=$PROJECT_ID &>/dev/null; then
+  echo "   Service account already exists — skipping creation"
+else
+  gcloud iam service-accounts create $SA_NAME \
+    --display-name="HR Gateway Service Account" \
+    --project=$PROJECT_ID
+
+  echo "   Waiting for service account to propagate across GCP..."
+  # ✅ FIX: Poll until SA is reachable instead of a blind sleep
+  for i in {1..10}; do
+    if gcloud iam service-accounts describe "$SA" --project=$PROJECT_ID &>/dev/null; then
+      echo "   ✅ Service account is ready"
+      break
+    fi
+    echo "   Still waiting... ($i/10)"
+    sleep 5
+  done
+fi
 
 # Grant required roles
+echo "   Binding IAM roles..."
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member="serviceAccount:$SA" \
   --role="roles/aiplatform.user" --quiet
